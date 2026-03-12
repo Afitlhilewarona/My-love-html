@@ -1,10 +1,697 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My Love</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Warona ❤ Lefika — Roses & Hearts</title>
+
+  <style>
+    /* ============ Base Reset ============ */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000; /* deep space backdrop */
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-family: "Arial", sans-serif;
+      color: #fff;
+    }
+
+    /* ============ Stage ============ */
+    #canvas {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* ============ Rose that draws the heart path ============ */
+    .rose {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 10;
+      filter: drop-shadow(0 0 8px rgba(255, 23, 68, 0.8));
+    }
+    .rose svg { width: 100%; height: 100%; }
+
+    /* Rose trail mini-prints */
+    .rose-trail {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      transform: translate(-50%, -50%);
+      opacity: 0.6;
+      pointer-events: none;
+      z-index: 8;
+      animation: fadeTrail 1s forwards;
+    }
+    @keyframes fadeTrail {
+      0% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    }
+
+    /* Glow dots tracing the heart */
+    .glow-line {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 3;
+      box-shadow: 0 0 15px currentColor;
+    }
+
+    /* Petal sparks along the drawing path */
+    .petal-particle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: radial-gradient(ellipse at center, #ff1744 0%, #f50057 100%);
+      border-radius: 50% 0 50% 0;
+      pointer-events: none;
+      z-index: 5;
+      animation: petalFall linear forwards;
+    }
+    @keyframes petalFall {
+      0%   { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+      100% { opacity: 0; transform: translate(var(--drift-x), 400px) rotate(720deg) scale(0.3); }
+    }
+
+    /* Sparkles */
+    .sparkle {
+      position: absolute;
+      width: 4px; height: 4px;
+      background: white; border-radius: 50%;
+      pointer-events: none;
+      animation: sparkleAnim 1s forwards;
+    }
+    @keyframes sparkleAnim {
+      0%   { opacity: 1; transform: scale(0); }
+      50%  { opacity: 1; transform: scale(1.5); }
+      100% { opacity: 0; transform: scale(0); }
+    }
+
+    /* ============ Bottom Animated Letters ============ */
+    .love-text-container {
+      position: absolute;
+      bottom: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 15px;
+      opacity: 0;
+      transition: opacity 2s;
+      z-index: 20;
+    }
+    .love-text-container.show { opacity: 1; }
+
+    .letter-rose {
+      width: 50px; height: 50px;
+      filter: drop-shadow(0 0 10px rgba(255, 23, 68, 0.8));
+      animation: letterPulse 2s infinite;
+    }
+    @keyframes letterPulse {
+      0%,100% { transform: scale(1); }
+      50%     { transform: scale(1.15); }
+    }
+
+    /* ============ Message Box (smaller + moved up) ============ */
+    .message-box {
+      position: absolute;
+      bottom: 18%; /* moved up so the bottom letters stay visible */
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(720px, 88vw); /* medium size */
+      background: linear-gradient( to bottom right, rgba(255, 20, 80, 0.18), rgba(255, 128, 171, 0.18) );
+      border: 2px solid rgba(255, 128, 171, 0.75);
+      border-radius: 18px;
+      padding: clamp(14px, 2.6vw, 22px);
+      text-align: center;
+      color: #fff;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 28px #ff4081;
+      z-index: 30;
+      opacity: 0;
+      animation: fadeIn 1.2s forwards 0.4s, pulseGlow 3.2s ease-in-out infinite 2s;
+    }
+    /* Heartbeat glow behind the box */
+    .message-box::before {
+      content: "";
+      position: absolute;
+      inset: -24px;
+      border-radius: 24px;
+      background: radial-gradient(circle at 50% 50%,
+        rgba(255, 64, 129, 0.35) 0%,
+        rgba(255, 64, 129, 0.12) 40%,
+        transparent 65%);
+      filter: blur(16px);
+      animation: heartbeat 1.9s ease-in-out infinite;
+      z-index: 0;
+    }
+    .message-box > * { position: relative; z-index: 1; }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1);   opacity: 0.9; }
+      25%      { transform: scale(1.05); opacity: 1;   }
+      40%      { transform: scale(0.98); opacity: 0.85;}
+      60%      { transform: scale(1.06); opacity: 1;   }
+      80%      { transform: scale(1.01); opacity: 0.9; }
+    }
+
+    @keyframes fadeIn { to { opacity: 1; } }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 28px #ff4081; }
+      50%      { box-shadow: 0 0 52px #ff80ab; }
+    }
+
+    .names {
+      font-weight: 800;
+      font-size: clamp(20px, 4vw, 36px);
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #ff1744, #ff4081, #ff80ab, #ff1744);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 12px rgba(255, 64, 129, 0.35);
+    }
+
+    .since {
+      margin-top: 4px;
+      font-size: clamp(12px, 2.4vw, 16px);
+      color: #ffd1e1;
+      opacity: 0.9;
+    }
+
+    .counter-line {
+      margin-top: 8px;
+      font-weight: 700;
+      font-size: clamp(15px, 2.8vw, 20px);
+      color: #fff;
+      text-shadow: 0 0 8px rgba(255, 64, 129, 0.4);
+    }
+
+    .timer {
+      margin-top: 4px;
+      font-family: "Courier New", monospace;
+      font-weight: 700;
+      font-size: clamp(14px, 3vw, 18px);
+      color: #ffb3c7;
+      letter-spacing: 1px;
+    }
+
+    /* ============ Poem (stanza-by-stanza glow + fade) ============ */
+    .poem {
+      margin-top: 12px;
+      line-height: 1.5;
+      font-size: clamp(14px, 3vw, 18px);
+      color: #ffe7f0;
+      min-height: 6.5em; /* reserve space to reduce layout jump */
+    }
+
+    .stanza {
+      opacity: 0;
+      transform: scale(0.98);
+      text-shadow: 0 0 0 rgba(255,128,171,0);
+      transition:
+        opacity .6s ease,
+        transform .6s ease,
+        text-shadow .6s ease;
+      will-change: opacity, transform, text-shadow;
+    }
+    .stanza.show {
+      opacity: 1;
+      transform: scale(1);
+      text-shadow: 0 0 12px rgba(255,128,171,0.55);
+    }
+    .stanza.hide {
+      opacity: 0;
+      transform: scale(0.985);
+      text-shadow: 0 0 0 rgba(255,128,171,0);
+    }
+
+    /* ============ Realistic Global Falling Petals ============ */
+    .petal-wrapper {
+      position: fixed;
+      top: -60px;
+      left: 0;
+      pointer-events: none;
+      z-index: 4;
+      transform: translateX(var(--startX));
+      animation: sway var(--swayDuration) ease-in-out infinite;
+    }
+    @keyframes sway {
+      0%, 100% { transform: translateX(calc(var(--startX))); }
+      50%      { transform: translateX(calc(var(--startX) + var(--sway))); }
+    }
+
+    .petal-fall {
+      animation: fall var(--fallDuration) linear forwards;
+      filter: drop-shadow(0 0 6px rgba(255, 64, 129, 0.6));
+    }
+    @keyframes fall { to { transform: translateY(110vh); } }
+
+    .petal-shape {
+      display: block;
+      width: var(--size);
+      height: var(--size);
+      transform-origin: 50% 50%;
+      animation: spin var(--spinDuration) linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg) scale(1); }
+      to   { transform: rotate(360deg) scale(1); }
+    }
+
+    /* ============ Responsive tweak for short screens ============ */
+    @media (max-height: 640px) {
+      .message-box { bottom: 22%; padding: 12px 16px; }
+      .names { font-size: clamp(18px, 4.5vw, 30px); }
+    }
+  </style>
 </head>
+
 <body>
-    <h1>Welcome to My Love Page</h1>
-    <p>This is a simple HTML file for my love project.</p>
+  <div id="canvas">
+    <!-- Bottom animated letters -->
+    <div class="love-text-container" id="loveText"></div>
+
+    <!-- Message box (smaller, moved up) -->
+    <div class="message-box" id="messageBox" style="display:none;">
+      <div class="names">WARONA ❤ LEFIKA</div>
+      <div class="since" id="sinceText"></div>
+      <div class="counter-line" id="daysLine"></div>
+      <div class="timer" id="liveTimer">Loading time together…</div>
+      <div class="poem" id="poemText"></div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================
+    // 💞 PERSONALIZED DETAILS
+    // =========================================================
+    const yourName = "Warona";
+    const partnerName = "Lefika";
+    const startDate = new Date("2025-04-16T00:00:00"); // April 16, 2025
+
+    // =========================================================
+    // 🧮 Time/Day Counter Helpers
+    // =========================================================
+    function pad(n) { return String(n).padStart(2, "0"); }
+
+    function getTimePartsSince(date) {
+      const now = new Date();
+      let diff = now - date;
+      const msInDay = 1000 * 60 * 60 * 24;
+      const msInHour = 1000 * 60 * 60;
+      const msInMinute = 1000 * 60;
+
+      const days = Math.floor(diff / msInDay);
+      diff -= days * msInDay;
+
+      const hours = Math.floor(diff / msInHour);
+      diff -= hours * msInHour;
+
+      const minutes = Math.floor(diff / msInMinute);
+      diff -= minutes * msInMinute;
+
+      const seconds = Math.floor(diff / 1000);
+
+      return { days, hours, minutes, seconds };
+    }
+
+    function formatDateLong(date) {
+      return date.toLocaleDateString(undefined, {
+        year: "numeric", month: "long", day: "numeric"
+      });
+    }
+
+    // =========================================================
+    // 🎨 Drawing Roses Along a Heart Path
+    // =========================================================
+    const canvas = document.getElementById("canvas");
+    const loveTextContainer = document.getElementById("loveText");
+
+    let centerX = window.innerWidth / 2;
+    let centerY = window.innerHeight / 2;
+
+    function createRoseSVG(color = "#ff1744", color2 = "#f50057") {
+      return `
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <ellipse cx="50" cy="40" rx="18" ry="25" fill="${color}"/>
+          <ellipse cx="35" cy="47" rx="18" ry="25" fill="${color}" transform="rotate(-45 35 47)"/>
+          <ellipse cx="65" cy="47" rx="18" ry="25" fill="${color}" transform="rotate(45 65 47)"/>
+          <ellipse cx="30" cy="60" rx="18" ry="25" fill="${color}" transform="rotate(-80 30 60)"/>
+          <ellipse cx="70" cy="60" rx="18" ry="25" fill="${color}" transform="rotate(80 70 60)"/>
+          <ellipse cx="50" cy="50" rx="12" ry="18" fill="${color2}"/>
+          <ellipse cx="42" cy="55" rx="12" ry="18" fill="${color2}"/>
+          <ellipse cx="58" cy="55" rx="12" ry="18" fill="${color2}"/>
+          <circle cx="50" cy="55" r="8" fill="#c62828"/>
+        </svg>
+      `;
+    }
+
+    function createPetal(x, y) {
+      const petal = document.createElement("div");
+      petal.className = "petal-particle";
+      petal.style.left = x + "px";
+      petal.style.top = y + "px";
+      petal.style.setProperty("--drift-x", (Math.random() - 0.5) * 100 + "px");
+      petal.style.animationDuration = 1.5 + Math.random() * 1 + "s";
+      canvas.appendChild(petal);
+      setTimeout(() => petal.remove(), 3000);
+    }
+
+    function createSparkle(x, y) {
+      const sparkle = document.createElement("div");
+      sparkle.className = "sparkle";
+      sparkle.style.left = x + "px";
+      sparkle.style.top = y + "px";
+      canvas.appendChild(sparkle);
+      setTimeout(() => sparkle.remove(), 1000);
+    }
+
+    function createGlowDot(x, y, color) {
+      const dot = document.createElement("div");
+      dot.className = "glow-line";
+      dot.style.left = x + "px";
+      dot.style.top = y + "px";
+      dot.style.background = color;
+      dot.style.color = color;
+      canvas.appendChild(dot);
+    }
+
+    function generateHeartPoints(size, segments = 300) {
+      const points = [];
+      for (let i = 0; i <= segments; i++) {
+        const t = (i / segments) * Math.PI * 2;
+        const x = size * 16 * Math.pow(Math.sin(t), 3);
+        const y = -size * (
+          13 * Math.cos(t) -
+          5 * Math.cos(2 * t) -
+          2 * Math.cos(3 * t) -
+          Math.cos(4 * t)
+        );
+        points.push({ x: centerX + x, y: centerY + y });
+      }
+      return points;
+    }
+
+    function animateHeartWithRose(size, color1, color2, delay, speed = 15) {
+      setTimeout(() => {
+        const points = generateHeartPoints(size);
+        let currentIndex = 0;
+
+        const rose = document.createElement("div");
+        rose.className = "rose";
+        rose.innerHTML = createRoseSVG(color1, color2);
+        canvas.appendChild(rose);
+
+        function drawStep() {
+          if (currentIndex >= points.length) {
+            rose.remove();
+            return;
+          }
+
+          const point = points[currentIndex];
+          rose.style.left = point.x + "px";
+          rose.style.top = point.y + "px";
+
+          createGlowDot(point.x, point.y, color1);
+
+          if (currentIndex % 8 === 0) createPetal(point.x, point.y);
+          if (currentIndex % 15 === 0) {
+            createSparkle(
+              point.x + (Math.random() - 0.5) * 20,
+              point.y + (Math.random() - 0.5) * 20
+            );
+          }
+
+          if (currentIndex % 3 === 0) {
+            const trail = document.createElement("div");
+            trail.className = "rose-trail";
+            trail.innerHTML = createRoseSVG(color1, color2);
+            trail.style.left = point.x + "px";
+            trail.style.top = point.y + "px";
+            canvas.appendChild(trail);
+            setTimeout(() => trail.remove(), 1000);
+          }
+
+          currentIndex++;
+          setTimeout(drawStep, speed);
+        }
+
+        drawStep();
+      }, delay);
+    }
+
+    // Heart layers for one cycle
+    const heartConfigs = [
+      { size: 3,  color1: "#ff5252", color2: "#ff1744", delay: 0,     speed: 12 },
+      { size: 5,  color1: "#ff4081", color2: "#f50057", delay: 4000,  speed: 11 },
+      { size: 7,  color1: "#ff80ab", color2: "#ff4081", delay: 8000,  speed: 10 },
+      { size: 9,  color1: "#f50057", color2: "#ff1744", delay: 12000, speed: 9  },
+      { size: 11, color1: "#ff1744", color2: "#c62828", delay: 16000, speed: 8  },
+    ];
+
+    // 🔁 Keep hearts drawing forever
+    function runHeartCycle() {
+      heartConfigs.forEach((c) => animateHeartWithRose(c.size, c.color1, c.color2, c.delay, c.speed));
+      // Run a new cycle every ~20s
+      setTimeout(runHeartCycle, 20000);
+    }
+    runHeartCycle();
+
+    // Animated letters — "I ❤ LOVE YOU"
+    function createLoveTextWithRoses() {
+      setTimeout(() => {
+        const letters = ["I", "❤", "L", "O", "V", "E", "", "Y", "O", "U"];
+        const colors = [
+          ["#ff1744", "#f50057"], ["#f50057", "#ff4081"], ["#ff4081", "#ff80ab"],
+          ["#ff80ab", "#ff5252"], ["#ff5252", "#ff1744"], ["#ff1744", "#f50057"],
+          ["#f50057", "#ff4081"], ["#ff4081", "#ff80ab"], ["#ff80ab", "#ff5252"],
+          ["#ff5252", "#ff1744"]
+        ];
+
+        letters.forEach((letter, i) => {
+          setTimeout(() => {
+            if (letter === "❤") {
+              const heart = document.createElement("div");
+              heart.className = "letter-rose";
+              heart.style.animationDelay = i * 0.1 + "s";
+              heart.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true">
+                <path d="M50,85 C50,85 15,60 15,40 C15,25 25,15 35,15 C42,15 48,20 50,25 C52,20 58,15 65,15 C75,15 85,25 85,40 C85,60 50,85 50,85 Z"
+                  fill="${colors[i][0]}"/>
+              </svg>`;
+              loveTextContainer.appendChild(heart);
+            } else if (letter !== "") {
+              const letterDiv = document.createElement("div");
+              letterDiv.className = "letter-rose";
+              letterDiv.style.animationDelay = i * 0.1 + "s";
+              letterDiv.innerHTML = createRoseSVG(colors[i][0], colors[i][1]);
+              letterDiv.style.position = "relative";
+
+              const text = document.createElement("div");
+              text.textContent = letter;
+              text.style.position = "absolute";
+              text.style.top = "50%";
+              text.style.left = "50%";
+              text.style.transform = "translate(-50%, -50%)";
+              text.style.fontSize = "24px";
+              text.style.fontWeight = "bold";
+              text.style.color = "white";
+              text.style.textShadow = "0 0 5px rgba(0,0,0,0.8)";
+              letterDiv.appendChild(text);
+
+              loveTextContainer.appendChild(letterDiv);
+            } else {
+              const space = document.createElement("div");
+              space.style.width = "30px";
+              loveTextContainer.appendChild(space);
+            }
+          }, i * 200);
+        });
+
+        setTimeout(() => loveTextContainer.classList.add("show"), letters.length * 200);
+      }, 18000);
+    }
+    createLoveTextWithRoses();
+
+    // =========================================================
+    // 🌹 Realistic Global Petal Rain + Boost on poem reveal
+    // =========================================================
+    function createFallingPetal() {
+      const wrapper = document.createElement("div");
+      wrapper.className = "petal-wrapper";
+
+      const fall = document.createElement("div");
+      fall.className = "petal-fall";
+
+      const svgSize = Math.floor(14 + Math.random() * 18); // 14–32px
+      const spinSec = (5 + Math.random() * 6).toFixed(1); // 5–11s
+      const petal = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      petal.setAttribute("class", "petal-shape");
+      petal.setAttribute("viewBox", "0 0 100 140");
+      petal.style.setProperty("--size", svgSize + "px");
+      petal.style.setProperty("--spinDuration", `${spinSec}s`);
+
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      const grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+      const id = "g" + Math.random().toString(36).slice(2);
+      grad.setAttribute("id", id);
+      grad.setAttribute("x1", "0%"); grad.setAttribute("y1", "0%");
+      grad.setAttribute("x2", "0%"); grad.setAttribute("y2", "100%");
+      const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+      stop1.setAttribute("offset", "0%"); stop1.setAttribute("stop-color", "#ff4d6d");
+      const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+      stop2.setAttribute("offset", "100%"); stop2.setAttribute("stop-color", "#c81d40");
+      grad.appendChild(stop1); grad.appendChild(stop2); defs.appendChild(grad);
+
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d",
+        "M50 5 C80 20, 95 55, 70 90 C60 105, 50 120, 50 135 C50 120, 40 105, 30 90 C5 55, 20 20, 50 5 Z"
+      );
+      path.setAttribute("fill", `url(#${id})`);
+
+      petal.appendChild(defs);
+      petal.appendChild(path);
+
+      fall.appendChild(petal);
+      wrapper.appendChild(fall);
+      document.body.appendChild(wrapper);
+
+      const startX = Math.random() * window.innerWidth;
+      const sway = (40 + Math.random() * 120) * (Math.random() < 0.5 ? -1 : 1);
+      const swayDuration = (4 + Math.random() * 6).toFixed(1) + "s";
+      const fallDuration = (8 + Math.random() * 8).toFixed(1) + "s";
+
+      wrapper.style.setProperty("--startX", startX + "px");
+      wrapper.style.setProperty("--sway", sway + "px");
+      wrapper.style.setProperty("--swayDuration", swayDuration);
+      fall.style.setProperty("--fallDuration", fallDuration);
+
+      const total = parseFloat(fallDuration) * 1000 + 1000;
+      setTimeout(() => wrapper.remove(), total);
+    }
+
+    let rainTimer = null;
+    function startPetalRain(interval = 450) {
+      if (rainTimer) clearInterval(rainTimer);
+      rainTimer = setInterval(() => {
+        const burst = 1 + Math.floor(Math.random() * 3); // 1–3 petals per tick
+        for (let i = 0; i < burst; i++) createFallingPetal();
+      }, interval);
+    }
+    function boostPetalRain(durationMs = 8000, interval = 220) {
+      if (rainTimer) clearInterval(rainTimer);
+      startPetalRain(interval);
+      setTimeout(() => startPetalRain(450), durationMs);
+    }
+    setTimeout(startPetalRain, 1500);
+
+    // =========================================================
+    // 🥰 Message Box + Poem (stanza-by-stanza)
+    // =========================================================
+    const messageBox = document.getElementById("messageBox");
+    const sinceText  = document.getElementById("sinceText");
+    const daysLine   = document.getElementById("daysLine");
+    const liveTimer  = document.getElementById("liveTimer");
+    const poemText   = document.getElementById("poemText");
+
+    function updateMessageBox() {
+      const { days, hours, minutes, seconds } = getTimePartsSince(startDate);
+      sinceText.innerHTML = `Since <strong>${formatDateLong(startDate)}</strong>`;
+      daysLine.innerHTML  = `Today marks <strong>${days}</strong> days together 🥰`;
+      liveTimer.textContent = `Time together: ${days} days  ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+
+    // ✍️ Your poem split into 4 stanzas + final signature (last stays visible)
+    const stanzas = [
+      // Stanza 1
+      `Lefika, my love...<br>
+       you walk like confidence was made in your shape,<br>
+       and you hold me like you already know<br>
+       I belong safely in those arms.`,
+
+      // Stanza 2
+      `Your kindness?<br>
+       Haibo, that thing melts me more<br>
+       than all the sunsets I’ve ever seen.<br>
+       And your love...<br>
+       it wraps around me so softly<br>
+       I forget the world gets cold.`,
+
+      // Stanza 3
+      `You make me laugh,<br>
+       you make me blush,<br>
+       and you make my heart play games<br>
+       it never learned before you showed up.`,
+
+      // Stanza 4
+      `I don’t want to roam the earth looking for love —<br>
+       I already found my favorite version of it,<br>
+       and it’s you.<br>
+       If life has any sense of humour,<br>
+       you’ll be my first real love,<br>
+       my last real love,<br>
+       and the forever I get to tease,<br>
+       annoy, hug, kiss on the forehead,<br>
+       and choose again every day. 🌹💫💗`,
+
+      // Final signature (persists)
+      `<em>— From Mrs Lady Base ❤️</em>`
+    ];
+
+    const stanzaDurationMs = 4000; // 4 seconds per stanza
+    const fadeMs = 600;            // in/out duration (matches CSS transitions)
+
+    function playStanzas(index = 0) {
+      if (index >= stanzas.length) return;
+
+      // Clear and inject current stanza
+      poemText.innerHTML = "";
+      const stanzaEl = document.createElement("div");
+      stanzaEl.className = "stanza";
+      stanzaEl.innerHTML = stanzas[index];
+      poemText.appendChild(stanzaEl);
+
+      // Fade in (glow)
+      requestAnimationFrame(() => stanzaEl.classList.add("show"));
+
+      const isLast = index === stanzas.length - 1;
+      if (isLast) {
+        // Last stanza/signature stays; do not fade out
+        return;
+      }
+
+      // After display time, fade out and show next stanza
+      setTimeout(() => {
+        stanzaEl.classList.add("hide");
+        setTimeout(() => playStanzas(index + 1), fadeMs);
+      }, stanzaDurationMs - fadeMs);
+    }
+
+    // Reveal message box after hearts start and play poem
+    setTimeout(() => {
+      messageBox.style.display = "block";
+      updateMessageBox();
+      setInterval(updateMessageBox, 1000);
+
+      // Start stanza sequence
+      playStanzas(0);
+
+      // Boost petals while poem is playing the first stanzas
+      boostPetalRain(9000, 200);
+    }, 20000);
+
+    // Keep hearts centered on resize
+    window.addEventListener("resize", () => {
+      centerX = window.innerWidth / 2;
+      centerY = window.innerHeight / 2;
+    });
+  </script>
 </body>
 </html>
